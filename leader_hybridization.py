@@ -77,7 +77,7 @@ if __name__ == "__main__":
             d_interactions[sgRNA] = reverseComplement(fragment)
         
     canonicalEnergies = []
-    regex = re.compile(r'-\d+.\d{2}')
+    regex = re.compile(r'-?\d+.\d{2}')
     for sgRNA, fragment in d_interactions.items():
         cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
@@ -85,12 +85,15 @@ if __name__ == "__main__":
         canonicalEnergies.append(float(re.search(regex,cofoldResult).group()))
     
     negativeSamplingStart = d_coreSequences['L'][1] + len(d_coreSequences['L'][0]) + flankingSize
-    print(d_coreSequences)
+    print(canonicalEnergies)
+    exit(0)
     for i in range(negativeSamplingStart, len(sequence)-len(leader)):
         fragment = reverseComplement(sequence[i:i+len(leader)])
         cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
         cofoldResult = str(proc.stdout.read())
+        cofoldEnergy = float(re.search(regex,cofoldResult).group())
+            
 
 #trsL = 'CGTTTAGTTGAGAAAAGT' #HCoV_229E
 #trsL = 'TTTCGTTTAGTTGAGAA' #HCoV_NL63
