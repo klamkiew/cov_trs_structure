@@ -20,6 +20,8 @@ import csv
 import subprocess
 from docopt import docopt
 import re
+import numpy as np
+import Levenshtein
 
 d_complementNucl = { 
     "A":"T",
@@ -34,6 +36,16 @@ def reverseComplement(query):
 def find_all(a_str, sub):
     return([k for k in range(len(a_str)) if a_str[k:k+len(sub)] == sub])    
 
+def apply_cofold(leader, fragment):
+    cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
+    cofoldResult = str(proc.stdout.read())
+    try:
+        mfe = float(re.search(regex,cofoldResult).group())
+    except AttributeError:
+        print(cofoldResult)
+        exit(1)
+    return mfe
 
 if __name__ == "__main__":
     
@@ -77,55 +89,24 @@ if __name__ == "__main__":
             d_interactions[sgRNA] = reverseComplement(fragment)
         
     canonicalEnergies = []
-    regex = re.compile(r'-\d+.\d{2}')
+    regex = re.compile(r'-?\d+.\d{2}')
     for sgRNA, fragment in d_interactions.items():
-        cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
-        cofoldResult = str(proc.stdout.read())
-        canonicalEnergies.append(float(re.search(regex,cofoldResult).group()))
+        canonicalEnergies.append(apply_cofold(leader,fragment))
     
-    negativeSamplingStart = d_coreSequences['L'][1] + len(d_coreSequences['L'][0]) + flankingSize
-    print(d_coreSequences)
+    canonicalEnergies = np.array(canonicalEnergies)
+    canonicalTRS = [x[1] for x in d_coreSequences.values()]
+    negativeSamplingStart = d_coreSequences['L'][1] + len(leader) + flankingSize
+    negativeSet = []
     for i in range(negativeSamplingStart, len(sequence)-len(leader)):
         fragment = reverseComplement(sequence[i:i+len(leader)])
-        cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
-        cofoldResult = str(proc.stdout.read())
 
-#trsL = 'CGTTTAGTTGAGAAAAGT' #HCoV_229E
-#trsL = 'TTTCGTTTAGTTGAGAA' #HCoV_NL63
-#trsL = 'ATTTCGTTTAGTTCGA' #FCoV
-#trsL = 'ATTTCGTTTAGTTCGA' #TGEV
-
-#Threshold depends on mfe for canonical trs_l/b matches
-#threshold = #HCoV_229E
-#threshold = #HCoV_NL63
-#threshold = #FCoV
-#threshold = #TGEV
-
-# sequence = ''    
-# header = ''
-# for record in SeqIO.parse(file, "fasta"):
-#     header = record.id
-#     sequence = str(record.seq).upper()
-
-
-# leaderMatches = {}
-# for window in sequence[k:k+len(trsL)]:
-#     cmd = f"RNAduplex --noLP"
-#     #input needed: variables trsL and sequence
-#     subprocess.run(cmd.split(), stdout=outputStream, check=TRUE)
-    
-#     #get mfe-value from RNAduplex result
-#     if mfe < threshold:
-#         #add window substring to the list: 
-#         endPosition = k+len(window)       
-#         leaderMatches[f"match {k}-{endPosition}"] = window
-
-
-# #list entries written to file -> can then be used for mlocarna:
-# with open(outfile, 'w') as outputStream:
-#     for match in leaderMatches:
-#         matchSeq = leaderMatches[match]
-#         outputStream.write(f">{match}\n{matchSeq}\n")
-
+        mfe = apply_cofold(leader,fragment)
+        if mfe < (np.mean(canonicalEnergies) + np.std(canonicalEnergies)):
+            negativeSequence = sequence[i-150: i+len(leader)]
+            if any([Levenshtein.ratio(negativeSequence, x) > 0.9 for x in negativeSet]) or i in canonicalTRS:
+                continue
+            negativeSet.append(negativeSequence)
+            
+    with open(outfile, 'w') as outputStream:
+        for idx,sequence in enumerate(negativeSet):
+            outputStream.write(f">negative_pseudoTRS_sequence_{idx}\n{sequence}\n")
