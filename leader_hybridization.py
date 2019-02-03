@@ -92,21 +92,29 @@ if __name__ == "__main__":
     regex = re.compile(r'-?\d+.\d{2}')
     for sgRNA, fragment in d_interactions.items():
         canonicalEnergies.append(apply_cofold(leader,fragment))
+        print(sgRNA, d_coreSequences[sgRNA], fragment, canonicalEnergies[-1])
     
+    leaderCS = d_coreSequences['L'][0]
     canonicalEnergies = np.array(canonicalEnergies)
     canonicalTRS = [x[1] for x in d_coreSequences.values()]
-    negativeSamplingStart = d_coreSequences['L'][1] + len(leader) + flankingSize
+    #print(canonicalTRS)
+    ranges = [range(x-50,x+50) for x in canonicalTRS]
+    
+    negativeSamplingStart = d_coreSequences['L'][1] + len(leaderCS) + flankingSize
     negativeSet = []
-    for i in range(negativeSamplingStart, len(sequence)-len(leader)):
+    for i in range(negativeSamplingStart, len(sequence)-len(leaderCS)):
         fragment = reverseComplement(sequence[i:i+len(leader)])
 
         mfe = apply_cofold(leader,fragment)
         if mfe < (np.mean(canonicalEnergies) + np.std(canonicalEnergies)):
-            negativeSequence = sequence[i-150: i+len(leader)]
-            if any([Levenshtein.ratio(negativeSequence, x) > 0.9 for x in negativeSet]) or i in canonicalTRS:
+            negativeSequence = sequence[i-150: i+len(leaderCS)]
+            if any([Levenshtein.ratio(negativeSequence, x) > 0.9 for x in negativeSet]) or any([i in x for x in ranges]):
                 continue
             negativeSet.append(negativeSequence)
-            
+            print(f"pTRS-B\_{len(negativeSet)} & {i-flankingSize}--{i+len(leaderCS)+flankingSize} & {leader.replace('T','U')} & {fragment.replace('T','U')} & {mfe}\,kcal/mol \\\\")
+            print(f"{i-flankingSize}--{i+len(leaderCS)+flankingSize}")
     with open(outfile, 'w') as outputStream:
+        #constraint = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         for idx,sequence in enumerate(negativeSet):
-            outputStream.write(f">negative_pseudoTRS_sequence_{idx}\n{sequence}\n")
+            outputStream.write(f">negative_pseudoTRS_sequence_{idx+1}\n{sequence}\n")
+            #outputStream.write(f"{constraint[:len(leaderCS)].rjust(len(sequence),'.')} #1\n")
