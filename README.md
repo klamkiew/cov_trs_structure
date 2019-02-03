@@ -4,8 +4,39 @@
 
 Welcome!
 
-This github repository is part of our publication [Lamkiewicz et al. (2019)]{www.tobepublished.com} and contains
+This github repository is part of our publication [Lamkiewicz et al. (2019)](www.tobepublished.com) and contains
 our Python scripts as well as a small example dataset for the Human Coronavirus 229E.
+
+In order to get started, simply clone this repository on your local disk.
+
+```bash
+https://github.com/klamkiew/cov_trs_structure.git && cd cov_trs_structure/
+```
+
+#### Requirements
+
+In order to run our Python scripts without any problems, please make sure that you have a working
+[Python3](https://www.python.org/downloads/) installation on your system. Further, we developed
+our scripts under a Linux-based environment, thus, we do not guarantee our code to run on
+MacOS or Windows.
+
+Further, we used some packages that are not built in the standard Python3. However, 
+you can simply install these packages with the following command:
+
+```bash
+# make sure that the 'pip3' is actually connected to your Python3 installation.
+pip3 install -r requirements.txt
+```
+
+
+We further use the function of `RNAcofold v 2.4.11` which is implemented in
+the `ViennaRNA 2` package. Please follow this [link here](https://www.tbi.univie.ac.at/RNA/) 
+and the instruction on the webpage. Make sure that the programs are visible in 
+your `$PATH` variable. By default, this is done automatically when installing the
+ViennaRNA package without any parameters. For local installations and other things,
+we refer to the nice [guideline](https://www.tbi.univie.ac.at/RNA/#download) provided
+by the authors of ViennaRNA.
+
 
 #### Python Scripts
 
@@ -35,3 +66,16 @@ python3 find_trs.py [-t] example/HCoV_229E.fa example/hcov229e_trs.csv example/e
 
 ```
 
+`leader_hybridization.py` works in a similar fashion and contains the code to create the set of negative 
+instances. Again, it expects the *reference* and *csv-file* as input parameters and further needs an *output file*
+in order to store the extracted sequences.
+
+
+```bash
+python3 leader_hybridization.py example/HCoV_229E.fa example/hcov229e_trs.csv example/negative_seq_hcov229e.fa
+
+```
+
+
+If you have questions or comments, do not hesitate to contact us:
+kevin.lamkiewicz{at}uni-jena{dot}de
