@@ -20,6 +20,8 @@ import csv
 import subprocess
 from docopt import docopt
 import re
+import numpy as np
+import Levenshtein
 
 d_complementNucl = { 
     "A":"T",
@@ -34,6 +36,16 @@ def reverseComplement(query):
 def find_all(a_str, sub):
     return([k for k in range(len(a_str)) if a_str[k:k+len(sub)] == sub])    
 
+def apply_cofold(leader, fragment):
+    cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
+    cofoldResult = str(proc.stdout.read())
+    try:
+        mfe = float(re.search(regex,cofoldResult).group())
+    except AttributeError:
+        print(cofoldResult)
+        exit(1)
+    return mfe
 
 if __name__ == "__main__":
     
@@ -79,56 +91,30 @@ if __name__ == "__main__":
     canonicalEnergies = []
     regex = re.compile(r'-?\d+.\d{2}')
     for sgRNA, fragment in d_interactions.items():
-        cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
-        cofoldResult = str(proc.stdout.read())
-        canonicalEnergies.append(float(re.search(regex,cofoldResult).group()))
+        canonicalEnergies.append(apply_cofold(leader,fragment))
+        print(sgRNA, d_coreSequences[sgRNA], fragment, canonicalEnergies[-1])
     
-    negativeSamplingStart = d_coreSequences['L'][1] + len(d_coreSequences['L'][0]) + flankingSize
-    print(canonicalEnergies)
-    exit(0)
-    for i in range(negativeSamplingStart, len(sequence)-len(leader)):
+    leaderCS = d_coreSequences['L'][0]
+    canonicalEnergies = np.array(canonicalEnergies)
+    canonicalTRS = [x[1] for x in d_coreSequences.values()]
+    #print(canonicalTRS)
+    ranges = [range(x-50,x+50) for x in canonicalTRS]
+    
+    negativeSamplingStart = d_coreSequences['L'][1] + len(leaderCS) + flankingSize
+    negativeSet = []
+    for i in range(negativeSamplingStart, len(sequence)-len(leaderCS)):
         fragment = reverseComplement(sequence[i:i+len(leader)])
-        cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
-        cofoldResult = str(proc.stdout.read())
-        cofoldEnergy = float(re.search(regex,cofoldResult).group())
-            
 
-#trsL = 'CGTTTAGTTGAGAAAAGT' #HCoV_229E
-#trsL = 'TTTCGTTTAGTTGAGAA' #HCoV_NL63
-#trsL = 'ATTTCGTTTAGTTCGA' #FCoV
-#trsL = 'ATTTCGTTTAGTTCGA' #TGEV
-
-#Threshold depends on mfe for canonical trs_l/b matches
-#threshold = #HCoV_229E
-#threshold = #HCoV_NL63
-#threshold = #FCoV
-#threshold = #TGEV
-
-# sequence = ''    
-# header = ''
-# for record in SeqIO.parse(file, "fasta"):
-#     header = record.id
-#     sequence = str(record.seq).upper()
-
-
-# leaderMatches = {}
-# for window in sequence[k:k+len(trsL)]:
-#     cmd = f"RNAduplex --noLP"
-#     #input needed: variables trsL and sequence
-#     subprocess.run(cmd.split(), stdout=outputStream, check=TRUE)
-    
-#     #get mfe-value from RNAduplex result
-#     if mfe < threshold:
-#         #add window substring to the list: 
-#         endPosition = k+len(window)       
-#         leaderMatches[f"match {k}-{endPosition}"] = window
-
-
-# #list entries written to file -> can then be used for mlocarna:
-# with open(outfile, 'w') as outputStream:
-#     for match in leaderMatches:
-#         matchSeq = leaderMatches[match]
-#         outputStream.write(f">{match}\n{matchSeq}\n")
-
+        mfe = apply_cofold(leader,fragment)
+        if mfe < (np.mean(canonicalEnergies) + np.std(canonicalEnergies)):
+            negativeSequence = sequence[i-150: i+len(leaderCS)]
+            if any([Levenshtein.ratio(negativeSequence, x) > 0.9 for x in negativeSet]) or any([i in x for x in ranges]):
+                continue
+            negativeSet.append(negativeSequence)
+            print(f"pTRS-B\_{len(negativeSet)} & {i-flankingSize}--{i+len(leaderCS)+flankingSize} & {leader.replace('T','U')} & {fragment.replace('T','U')} & {mfe}\,kcal/mol \\\\")
+            print(f"{i-flankingSize}--{i+len(leaderCS)+flankingSize}")
+    with open(outfile, 'w') as outputStream:
+        #constraint = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        for idx,sequence in enumerate(negativeSet):
+            outputStream.write(f">negative_pseudoTRS_sequence_{idx+1}\n{sequence}\n")
+            #outputStream.write(f"{constraint[:len(leaderCS)].rjust(len(sequence),'.')} #1\n")
