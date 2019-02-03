@@ -4,7 +4,7 @@
 
 Welcome!
 
-This github repository is part of our publication [Lamkiewicz et al. (2019)](www.tobepublished.com) and contains
+This github repository is part of our publication [Lamkiewicz et al. (2019)](https://www.tobepublished.com) and contains
 our Python scripts as well as a small example dataset for the Human Coronavirus 229E.
 
 In order to get started, simply clone this repository on your local disk.
@@ -76,6 +76,13 @@ python3 leader_hybridization.py example/HCoV_229E.fa example/hcov229e_trs.csv ex
 
 ```
 
+#### Contact
 
 If you have questions or comments, do not hesitate to contact us:
+
 kevin.lamkiewicz{at}uni-jena{dot}de
+
+##### License
+GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+
+For more details, we refer to the [LICENSE](./blob/master/LICENSE)
