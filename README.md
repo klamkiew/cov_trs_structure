@@ -82,7 +82,7 @@ If you have questions or comments, do not hesitate to contact us:
 
 kevin.lamkiewicz{at}uni-jena{dot}de
 
-##### License
+#### License
 GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
 
-For more details, we refer to the [LICENSE](./blob/master/LICENSE)
+For more details, we refer to the [LICENSE](./LICENSE)
