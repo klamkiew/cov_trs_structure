@@ -9,7 +9,7 @@ Usage:
 
 Options:
     -h, --help                                  Show this little neat help message and exit.
-    -r REGION, --region REGION                  Size of extracted region downstream of the TRS. [default: 100]
+    -r REGION, --region REGION                  Size of extracted region downstream of the TRS. [default: 150]
     -l CS_LENGTH, --length CS_LENGTH            Length of the core sequence. [default: 8]
     -m, --mismatch                              Allow one mismatch in trs sequence. [default: False]
     -t, --withtrs                               Include the trs sequence in extracted sequence. [default: True]
@@ -23,22 +23,43 @@ Contact:
 
 """
 
+###################################
+
 import csv
 import sys
 
 from Bio import SeqIO
 from docopt import docopt
 
-def find_all(a_str, sub):
-    """
+###################################
 
+def find_all(haystack, needle):
+    """
+    Small helper-function to find all occurrences of a substring
+    within a string. Returns the starting index in a similar fashion 
+    as the built-in str.find() function.
+
+    Parameters:
+    haystack -- String that is scanned for the needle
+    needle -- the pattern / substring of interest 
+
+    Return:
+    List of all starting indices of needle in haystack.
 
     """
-    return([k for k in range(len(a_str)) if a_str[k:k+len(sub)] == sub])    
+    return([k for k in range(len(haystack)) if haystack[k:k+len(needle)] == needle])    
 
 def hamming(s1, s2):
     """
+    Returns the Hamming distance of two input strings.
+    Careful, only strings of equal length are allowed.
 
+    Parameters:
+    s1 -- First string for distance calculation
+    s2 -- Second string for distance calucation
+
+    Return:
+    Integer value containing the hamming distance.
 
     """
     if len(s1) == len(s2):
@@ -46,62 +67,97 @@ def hamming(s1, s2):
 
 def find_with_mism(a_str, sub):   #find match with one mismatch allowed
     """
+    Finds all occurences of needle in haystack even if there is one mismatch
+    between the pattern and the text. Uses the hamming() function.
 
+    Parameters:
+    haystack -- String that is scanned for the needle
+    needle -- the pattern / substring of interest
+
+    Return:
+    List of all starting indices of needle in haystack with at most one mismatch.
 
     """
     indexes = []
     k = 0
-    while k < len(a_str):
-        if hamming(a_str[k:k+len(sub)], sub) == 1 or hamming(a_str[k:k+len(sub)], sub) == 0:  
+    while k < len(haystack):
+        if hamming(haystack[k:k+len(needle)], needle) <= 1:  
             indexes.append(k)
         k += 1
     return indexes
 
+###################################
 
+if __name__ == '__main__':
 
-args = docopt(__doc__)
+    ###################################
+    # Argument parsing
+    args = docopt(__doc__)
 
-file = args['<FASTA>']
-csfile = args['<CSFILE>']
-outfile = args['<OUTPUTFILE>']
-regionSize = int(args['--region'])
-cs_length = int(args['--length'])
-mismatch = int(args['--mismatch'])
-withtrs = int(args['--withtrs'])
+    file = args['<FASTA>']
+    csfile = args['<CSFILE>']
+    outfile = args['<OUTPUTFILE>']
+    regionSize = int(args['--region'])
+    cs_length = int(args['--length'])
+    mismatch = int(args['--mismatch'])
+    withtrs = int(args['--withtrs'])
 
-sequence = ''
-trsSeqs = {}
+    ###################################
+    # variable declaration
 
-with open(csfile) as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in csv_reader:
-        trsSeqs[row[0]] = row[1]
-        #row[0] is the sgmRNA name
-        #row[1] is the core sequence
-        line_count += 1
+    sequence = ''
+    trsSeqs = {}
+
+    ###################################
+    # get CS information from csv
+
+    with open(csfile) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
+            trsSeqs[row[0]] = row[1]
+            #row[0] is the sgmRNA name
+            #row[1] is the core sequence
+            line_count += 1
     
-header = ''
-for record in SeqIO.parse(file, "fasta"):
-    header = record.id
-    sequence = str(record.seq).upper()
+    ###################################
+    # read in reference genome
 
-if mismatch:
-    trsRegion = { geneName : find_all(sequence, trsB) for geneName, trsB in trsSeqs.items() }
-else:
-    trsRegion = { geneName : find_with_mism(sequence, trsB) for geneName, trsB in trsSeqs.items() }
+    header = ''
+    for record in SeqIO.parse(file, "fasta"):
+        header = record.id
+        sequence = str(record.seq).upper()
 
-uniquePositions = set([x for liste in trsRegion.values() for x in liste])
+    ###################################
+    # get all genomic positions
+    # for each TRS sequences from the
+    # reference genome 
 
-with open(outfile, 'w') as outputStream:
-    for trs in uniquePositions:
-        if trs - regionSize < 0:
-            continue
+    if mismatch:
+        trsRegion = { geneName : find_all(sequence, trsB) for geneName, trsB in trsSeqs.items() }
+    else:
+        trsRegion = { geneName : find_with_mism(sequence, trsB) for geneName, trsB in trsSeqs.items() }
 
-        if not withtrs:
-            subSeq = sequence[trs-regionSize:trs]
-            outputStream.write(f">{header}|{trs-regionSize}-{trs}\n{subSeq}\n")
-        else:
-            subSeq = sequence[trs-regionSize:trs+cs_length] 
-            outputStream.write(f">{header}|{trs-regionSize}-{trs+cs_length}\n{subSeq}\n")
+    # uniquePositions are needed as some CS of different genes
+    # are identical and thus the genomic coordinates are duplicated/multiplied
+    uniquePositions = set([x for liste in trsRegion.values() for x in liste])
+
+    ###################################
+    # write results into file 
+
+    with open(outfile, 'w') as outputStream:
+        for trs in uniquePositions:
+            # in case we don't have enough nts for extraction
+            # we skip -- this is usually the case for the TRS-L only.
+            if trs - regionSize < 0:
+                continue
+            # otherwise we check whether the TRS has to be included or not
+            if not withtrs:
+                subSeq = sequence[trs-regionSize:trs]
+                coordinates = f"{trs-regionSize}-{trs}"    
+            else:
+                subSeq = sequence[trs-regionSize:trs+cs_length] 
+                coordinates = f"{trs-regionSize}-{trs+cs_length}"
+            
+            outputStream.write(f">{header}|{coordinates}\n{subSeq}\n")
 
