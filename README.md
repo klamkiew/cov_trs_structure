@@ -58,11 +58,13 @@ The third column is not needed for `find_trs.py`, but it contains the *starting 
 within the reference genome.
 
 In order to extract upstream regions, you simply want to call `find_trs.py` with the reference, the csv-file
-and some *output file* which will store the extracted sequences.
+and some *output file* which will store the extracted sequences. In our case, we are looking hat the HCoV-229E,
+whose core sequence has 8 nucleotides. For other viruses the length of the core sequence may differ,
+thus we included the `-l` parameter to adjust this for each individual coronavirus. The default value is 8. 
 
 ```bash
 # if -t is activated, the upstream region plus the canonical TRS sequence is extracted
-python3 find_trs.py [-t] example/HCoV_229E.fa example/hcov229e_trs.csv example/extracted_seq_hcov229e.fa
+python3 find_trs.py [-t] -l 8 example/HCoV_229E.fa example/hcov229e_trs.csv example/extracted_seq_hcov229e.fa
 
 ```
 
