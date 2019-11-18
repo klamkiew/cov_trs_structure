@@ -80,7 +80,7 @@ def find_with_mism(haystack, needle):   #find match with one mismatch allowed
     """
     indexes = []
     k = 0
-    while k < len(haystack):
+    while k < len(haystack)-k:
         if hamming(haystack[k:k+len(needle)], needle) <= 1:  
             indexes.append(k)
         k += 1
@@ -134,9 +134,9 @@ if __name__ == '__main__':
     # reference genome 
 
     if mismatch:
-        trsRegion = { geneName : find_all(sequence, trsB) for geneName, trsB in trsSeqs.items() }
-    else:
         trsRegion = { geneName : find_with_mism(sequence, trsB) for geneName, trsB in trsSeqs.items() }
+    else:
+        trsRegion = { geneName : find_all(sequence, trsB) for geneName, trsB in trsSeqs.items() }
 
     # uniquePositions are needed as some CS of different genes
     # are identical and thus the genomic coordinates are duplicated/multiplied
