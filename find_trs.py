@@ -65,7 +65,7 @@ def hamming(s1, s2):
     if len(s1) == len(s2):
         return int(sum(ch1 != ch2 for ch1, ch2 in zip(s1, s2)))
 
-def find_with_mism(a_str, sub):   #find match with one mismatch allowed
+def find_with_mism(haystack, needle):   #find match with one mismatch allowed
     """
     Finds all occurences of needle in haystack even if there is one mismatch
     between the pattern and the text. Uses the hamming() function.
