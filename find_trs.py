@@ -10,9 +10,8 @@ Usage:
 Options:
     -h, --help                                  Show this little neat help message and exit.
     -r REGION, --region REGION                  Size of extracted region downstream of the TRS. [default: 150]
-    -l CS_LENGTH, --length CS_LENGTH            Length of the core sequence. [default: 8]
     -m, --mismatch                              Allow one mismatch in trs sequence. [default: False]
-    -t, --withtrs                               Include the trs sequence in extracted sequence. [default: True]
+    -t, --withtrs                               Include the trs sequence in extracted sequence. [default: False]
 
 Dependencies:
     BioPython 1.73 or greater
@@ -89,7 +88,9 @@ def find_with_mism(haystack, needle):   #find match with one mismatch allowed
 ###################################
 
 if __name__ == '__main__':
-
+    """
+    Main method.
+    """
     ###################################
     # Argument parsing
     args = docopt(__doc__)
@@ -98,9 +99,9 @@ if __name__ == '__main__':
     csfile = args['<CSFILE>']
     outfile = args['<OUTPUTFILE>']
     regionSize = int(args['--region'])
-    cs_length = int(args['--length'])
+    #cs_length = int(args['--length'])
     mismatch = int(args['--mismatch'])
-    withtrs = int(args['--withtrs'])
+    withtrs = args['--withtrs']
 
     ###################################
     # variable declaration
@@ -113,12 +114,12 @@ if __name__ == '__main__':
 
     with open(csfile) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
-        line_count = 0
         for row in csv_reader:
-            trsSeqs[row[0]] = row[1]
-            #row[0] is the sgmRNA name
-            #row[1] is the core sequence
-            line_count += 1
+            # row[0] is the sgmRNA name
+            # row[1] is the core sequence
+            # row[2] is the starting position within the genome
+            trsSeqs[row[0]] = (row[1].upper().replace('U','T'), row[2])
+            
     
     ###################################
     # read in reference genome
@@ -134,30 +135,32 @@ if __name__ == '__main__':
     # reference genome 
 
     if mismatch:
-        trsRegion = { geneName : find_with_mism(sequence, trsB) for geneName, trsB in trsSeqs.items() }
+        trsRegion = { geneName : find_with_mism(sequence, trsB[0]) for geneName, trsB in trsSeqs.items() }
     else:
-        trsRegion = { geneName : find_all(sequence, trsB) for geneName, trsB in trsSeqs.items() }
-
-    # uniquePositions are needed as some CS of different genes
-    # are identical and thus the genomic coordinates are duplicated/multiplied
-    uniquePositions = set([x for liste in trsRegion.values() for x in liste])
+        trsRegion = { geneName : find_all(sequence, trsB[0]) for geneName, trsB in trsSeqs.items() }
 
     ###################################
-    # write results into file 
+    # write down results
 
     with open(outfile, 'w') as outputStream:
-        for trs in uniquePositions:
-            # in case we don't have enough nts for extraction
-            # we skip -- this is usually the case for the TRS-L only.
-            if trs - regionSize < 0:
-                continue
-            # otherwise we check whether the TRS has to be included or not
-            if not withtrs:
-                subSeq = sequence[trs-regionSize:trs]
-                coordinates = f"{trs-regionSize}-{trs}"    
-            else:
-                subSeq = sequence[trs-regionSize:trs+cs_length] 
-                coordinates = f"{trs-regionSize}-{trs+cs_length}"
-            
-            outputStream.write(f">{header}|{coordinates}\n{subSeq}\n")
+        for geneName, trsB in trsSeqs.items():    
+            try:
+                # just consider the positions
+                # that are covered by the literature to be TRS-B
+                pos = int(trsB[1])
+                cs_length = len(trsB[0])
+                canonicalTRS = [x for x in trsRegion[geneName] if x in range(pos-40, pos+40)]
 
+                for trs in canonicalTRS:
+                    if trs - regionSize < 0:
+                        continue
+                    if not withtrs:
+                        subSeq = sequence[trs-regionSize:trs]
+                        coordinates = f"{trs-regionSize}-{trs}"
+                    else:
+                        subSeq = sequence[trs-regionSize:trs+cs_length] 
+                        coordinates = f"{trs-regionSize}-{trs+cs_length}"
+                    outputStream.write(f">{header}|{coordinates}|Gene_{geneName}\n{subSeq}\n")
+            except ValueError:
+                continue
+    exit(0)
