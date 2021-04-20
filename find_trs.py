@@ -115,10 +115,12 @@ if __name__ == '__main__':
     with open(csfile) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
+            if row:
             # row[0] is the sgmRNA name
             # row[1] is the core sequence
             # row[2] is the starting position within the genome
-            trsSeqs[row[0]] = (row[1].upper().replace('U','T'), row[2])
+                trsSeqs[row[0]] = (row[1].upper().replace('U','T'), row[2])
+            
             
     
     ###################################
