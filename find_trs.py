@@ -55,7 +55,7 @@ def hamming(s1, s2):
 
     Parameters:
     s1 -- First string for distance calculation
-    s2 -- Second string for distance calucation
+    s2 -- Second string for distance calculation
 
     Return:
     Integer value containing the hamming distance.
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
             if row:
-            # row[0] is the sgmRNA name
+            # row[0] is the sg mRNA name
             # row[1] is the core sequence
             # row[2] is the starting position within the genome
                 trsSeqs[row[0]] = (row[1].upper().replace('U','T'), row[2])

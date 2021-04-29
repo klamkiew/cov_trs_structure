@@ -5,7 +5,7 @@
 TRS-L matching to genome to find putative hybridization subsequences.
 This script is part of our publication
 
-Lamkiewicz et al. (2019), "", Viruses, doi:
+Lamkiewicz et al. (2021), "", Viruses, doi:
 
 
 
@@ -22,7 +22,7 @@ Dependencies:
     docopt 0.6.2 or greater
     numpy 1.15.4 or greater
 
-    ViennaRNA 2.4.11 installed in your $PATH variable.
+    ViennaRNA 2.4.13 installed in your $PATH variable.
 
 
 Contact:
