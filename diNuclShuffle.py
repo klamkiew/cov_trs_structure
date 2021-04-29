@@ -66,10 +66,11 @@ for data in glob("perm*.aln"):
 # determine the MFE value
 
 for aln in glob(f"{DIR}/perm*aln"):
-  cmd = f"bash -c 'RNAalifold -r --cfactor 0.4 --nfactor 0.5 --noLP --noPS {aln}'"
+  cmd = f"bash -c 'RNAalifold -r --cfactor 0.6 --nfactor 0.5 --noLP --noPS {aln}'"
   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=TRASH)
   output = p.stdout.read().decode('ascii').split('\n')[1]
   energies.extend(re.findall("(-\d+\.\d+)", output))
+  os.remove(aln)
 TRASH.close()  
 
 a = np.array(energies).astype(float)
