@@ -56,6 +56,8 @@ cmd = f"multiperm -n 1000 -w {ORIGINAL}"
 p = subprocess.Popen(cmd, shell=True)
 p.wait()
 
+###################################
+# move tmp alignments to the input directory
 for data in glob("perm*.aln"):
   if os.path.exists(f"{DIR}/{data}"):
     os.remove(f"{DIR}/{data}")
@@ -70,9 +72,11 @@ for aln in glob(f"{DIR}/perm*aln"):
   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=TRASH)
   output = p.stdout.read().decode('ascii').split('\n')[1]
   energies.extend(re.findall("(-\d+\.\d+)", output))
-  os.remove(aln)
+  os.remove(aln)  # removing all tmp alignments.
 TRASH.close()  
 
+###################################
+# calculate z-score and p-values
 a = np.array(energies).astype(float)
 z = zscore(a)[0]
 pvalue = norm.sf(abs(z)) * 2
