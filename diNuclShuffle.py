@@ -9,13 +9,20 @@ The input alignment in CLUSTAL format is folded with RNAalifold
 to get the original MFE. Then, 1000 shuffled alignments are created
 with multiperm (approximate dinucleotide shuffling of alignments).
 For each of these alignments RNAalifold is invoked again.
-A simple z-score analysis and p-value calculation is then applied 
+A simple z-score analysis and p-value calculation is then applied
 to check whether the original consensus structure is significant
 considering the energy with (di)nucleotide context.
 
 Usage:
   diNuclShuffle.py <CLUSTALW>
 
+Dependencies:
+    numpy>=1.15.4
+    scipy>=1.6.3
+
+
+    ViennaRNA 2.4.13 installed in your $PATH variable.
+    multiperm installed in your $PATH variable.
 
 Contact:
   kevin.lamkiewicz{at}uni-jena{dot}de
@@ -73,7 +80,7 @@ for aln in glob(f"{DIR}/perm*aln"):
   output = p.stdout.read().decode('ascii').split('\n')[1]
   energies.extend(re.findall("(-\d+\.\d+)", output))
   os.remove(aln)  # removing all tmp alignments.
-TRASH.close()  
+TRASH.close()
 
 ###################################
 # calculate z-score and p-values

@@ -3,10 +3,6 @@
 """
 
 TRS-L matching to genome to find putative hybridization subsequences.
-This script is part of our publication
-
-Lamkiewicz et al. (2021), "", Viruses, doi:
-
 
 
 Usage:
@@ -42,7 +38,7 @@ import numpy as np
 
 ###################################
 
-d_complementNucl = { 
+d_complementNucl = {
     "A":"T",
     "C":"G",
     "G":"C",
@@ -52,7 +48,7 @@ d_complementNucl = {
 def reverseComplement(query):
     """
     Return the reverse complementary sequence of a given query.
-    
+
     Parameters:
     query -- the given nucleotide sequence
 
@@ -66,18 +62,18 @@ def reverseComplement(query):
 def find_all(haystack, needle):
     """
     Small helper-function to find all occurrences of a substring
-    within a string. Returns the starting index in a similar fashion 
+    within a string. Returns the starting index in a similar fashion
     as the built-in str.find() function.
 
     Parameters:
     haystack -- String that is scanned for the needle
-    needle -- the pattern / substring of interest 
+    needle -- the pattern / substring of interest
 
     Return:
     List of all starting indices of needle in haystack.
 
     """
-    return([k for k in range(len(haystack)) if haystack[k:k+len(needle)] == needle])    
+    return([k for k in range(len(haystack)) if haystack[k:k+len(needle)] == needle])
 
 def apply_cofold(leader, fragment):
     """
@@ -89,7 +85,7 @@ def apply_cofold(leader, fragment):
     fragment -- second RNA molecule that interacts with the leader
 
     Return:
-    minimum free energy value stored as float 
+    minimum free energy value stored as float
 
     """
     cmd = f'RNAcofold --noLP <<< "{leader}&{fragment}"'
@@ -133,7 +129,7 @@ if __name__ == "__main__":
     ###################################
     # reading the reference genome
 
-    d_fastaRecords = {record.id : str(record.seq).upper() for record in SeqIO.parse(fileFasta,"fasta")}    
+    d_fastaRecords = {record.id : str(record.seq).upper() for record in SeqIO.parse(fileFasta,"fasta")}
     header = ''
     sequence = ''
     if len(d_fastaRecords) != 1:
@@ -150,26 +146,26 @@ if __name__ == "__main__":
     leader = ''
     for sgRNA, (coreSequence, position) in d_coreSequences.items():
         occurences = find_all(sequence, coreSequence)
-        
+
         if position not in occurences:
             print(f"Error! Couldn't find {coreSequence} of sg mRNA {sgRNA} in the reference.")
             sys.exit(2)
-        
+
         fragment = sequence[position - flankingSize : position + len(coreSequence) + flankingSize]
         if sgRNA == "L":
             leader = fragment
         else:
             d_interactions[sgRNA] = reverseComplement(fragment)
-        
+
     ###################################
     # calculate the interaction strength
-    # of canonical energies.    
+    # of canonical energies.
 
     canonicalEnergies = []
     regex = re.compile(r'-?\d+.\d{2}')
     for sgRNA, fragment in d_interactions.items():
         canonicalEnergies.append(apply_cofold(leader,fragment))
-    
+
     ###################################
     # find regions in the genome
     # with similar interaction strength
@@ -178,7 +174,7 @@ if __name__ == "__main__":
     canonicalEnergies = np.array(canonicalEnergies)
     canonicalTRS = [x[1] for x in d_coreSequences.values()]
     ranges = [range(x-50,x+50) for x in canonicalTRS]
-    
+
     negativeSamplingStart = d_coreSequences['L'][1] + len(leaderCS) + flankingSize
     negativeSet = []
     for i in range(negativeSamplingStart, len(sequence)-len(leaderCS)):
@@ -198,4 +194,4 @@ if __name__ == "__main__":
     with open(outfile, 'w') as outputStream:
         for idx,sequence in enumerate(negativeSet):
             outputStream.write(f">negative_pseudoTRS_sequence_{idx+1}\n{sequence}\n")
-            
+

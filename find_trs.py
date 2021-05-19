@@ -35,18 +35,18 @@ from docopt import docopt
 def find_all(haystack, needle):
     """
     Small helper-function to find all occurrences of a substring
-    within a string. Returns the starting index in a similar fashion 
+    within a string. Returns the starting index in a similar fashion
     as the built-in str.find() function.
 
     Parameters:
     haystack -- String that is scanned for the needle
-    needle -- the pattern / substring of interest 
+    needle -- the pattern / substring of interest
 
     Return:
     List of all starting indices of needle in haystack.
 
     """
-    return([k for k in range(len(haystack)) if haystack[k:k+len(needle)] == needle])    
+    return([k for k in range(len(haystack)) if haystack[k:k+len(needle)] == needle])
 
 def hamming(s1, s2):
     """
@@ -80,7 +80,7 @@ def find_with_mism(haystack, needle):   #find match with one mismatch allowed
     indexes = []
     k = 0
     while k < len(haystack)-k:
-        if hamming(haystack[k:k+len(needle)], needle) <= 1:  
+        if hamming(haystack[k:k+len(needle)], needle) <= 1:
             indexes.append(k)
         k += 1
     return indexes
@@ -120,9 +120,9 @@ if __name__ == '__main__':
             # row[1] is the core sequence
             # row[2] is the starting position within the genome
                 trsSeqs[row[0]] = (row[1].upper().replace('U','T'), row[2])
-            
-            
-    
+
+
+
     ###################################
     # read in reference genome
 
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     ###################################
     # get all genomic positions
     # for each TRS sequences from the
-    # reference genome 
+    # reference genome
 
     if mismatch:
         trsRegion = { geneName : find_with_mism(sequence, trsB[0]) for geneName, trsB in trsSeqs.items() }
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     # write down results
 
     with open(outfile, 'w') as outputStream:
-        for geneName, trsB in trsSeqs.items():    
+        for geneName, trsB in trsSeqs.items():
             try:
                 # just consider the positions
                 # that are covered by the literature to be TRS-B
@@ -160,7 +160,7 @@ if __name__ == '__main__':
                         subSeq = sequence[trs-regionSize:trs]
                         coordinates = f"{trs-regionSize}-{trs}"
                     else:
-                        subSeq = sequence[trs-regionSize:trs+cs_length] 
+                        subSeq = sequence[trs-regionSize:trs+cs_length]
                         coordinates = f"{trs-regionSize}-{trs+cs_length}"
                     outputStream.write(f">{header}|{coordinates}|Gene_{geneName}\n{subSeq}\n")
             except ValueError:
