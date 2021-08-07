@@ -50,7 +50,7 @@ TRASH = open(os.devnull)
 
 ###################################
 # original MFE calculation
-cmd = f"bash -c 'RNAalifold -r --cfactor 0.4 --nfactor 0.5 --noLP --noPS {ORIGINAL}'"
+cmd = f"bash -c 'RNAalifold -r --cfactor 0.6 --nfactor 0.5 --noLP --noPS {ORIGINAL}'"
 p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=TRASH)
 output = p.stdout.read().decode('ascii').split('\n')[1]
 ENERGY = re.findall("(-\d+\.\d+)", output)[0]
@@ -86,7 +86,8 @@ TRASH.close()
 # calculate z-score and p-values
 a = np.array(energies).astype(float)
 z = zscore(a)[0]
-pvalue = norm.sf(abs(z)) * 2
+#pvalue = norm.sf(abs(z)) * 2
+pvalue = norm.cdf(-1*abs(z)) * 2
 
 print(f"MFE of original alignment: {ENERGY} kcal/mol")
 print(f"p-value based on dinucl shuffle and z-score analysis: {pvalue}")
